@@ -6,6 +6,7 @@ import Link from 'next/link';
 
 export default function NhanThuongPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Tự động phát video khi component mount
@@ -14,6 +15,55 @@ export default function NhanThuongPage() {
         try {
           // Đợi video load
           videoRef.current.load();
+          
+          // Sửa rotation metadata của video - phát hiện và counter-rotate
+          const fixRotation = () => {
+            if (videoRef.current && videoContainerRef.current) {
+              const video = videoRef.current;
+              
+              // Lấy kích thước thực của video frames (không tính rotation metadata)
+              const videoWidth = video.videoWidth;
+              const videoHeight = video.videoHeight;
+              
+              if (videoWidth > 0 && videoHeight > 0) {
+                // Lấy kích thước container
+                const container = videoContainerRef.current;
+                const containerWidth = container.offsetWidth || container.clientWidth;
+                
+                // Kiểm tra nếu video có rotation metadata
+                // Browser tự động áp dụng rotation, làm cho videoWidth/videoHeight bị swap
+                // Nếu video thực tế là ngang (width > height) nhưng hiển thị dọc, thì bị xoay
+                
+                // Reset transform trước
+                video.style.transform = 'rotate(0deg)';
+                video.style.width = '100%';
+                video.style.height = 'auto';
+                video.style.maxHeight = '600px';
+                video.style.transformOrigin = 'center center';
+                video.style.objectFit = 'contain';
+                
+                // Đợi một chút để browser render
+                setTimeout(() => {
+                  if (videoRef.current) {
+                    const actualDisplayWidth = videoRef.current.offsetWidth;
+                    const actualDisplayHeight = videoRef.current.offsetHeight;
+                    
+              
+                    if (videoWidth < videoHeight && actualDisplayWidth > actualDisplayHeight && actualDisplayHeight > 0) {
+                      videoRef.current.style.transform = 'rotate(-90deg)';
+                      const scale = Math.min(containerWidth / videoHeight, 600 / videoWidth);
+                      videoRef.current.style.width = `${videoHeight * scale}px`;
+                      videoRef.current.style.height = `${videoWidth * scale}px`;
+                    }
+                  }
+                }, 100);
+              }
+            }
+          };
+          
+          videoRef.current.addEventListener('loadedmetadata', fixRotation);
+          videoRef.current.addEventListener('loadeddata', fixRotation);
+          videoRef.current.addEventListener('resize', fixRotation);
           
           // Thử autoplay
           const playPromise = videoRef.current.play();
@@ -73,12 +123,27 @@ export default function NhanThuongPage() {
 
         {/* Video Container - Local Video */}
         <div className="mb-8">
-          <div className="relative bg-black rounded-2xl overflow-hidden shadow-2xl border-4 border-yellow-500">
+          <div 
+            ref={videoContainerRef}
+            className="relative bg-black rounded-2xl overflow-hidden shadow-2xl border-4 border-yellow-500"
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: '400px'
+            }}
+          >
             
             {/* Local Video Element */}
             <video
               ref={videoRef}
               className="w-full h-auto max-h-150"
+              style={{ 
+                transform: 'rotate(0deg)',
+                transformOrigin: 'center center',
+                objectFit: 'contain',
+                display: 'block'
+              }}
               autoPlay
               muted // Thêm muted để tăng khả năng autoplay
               playsInline
