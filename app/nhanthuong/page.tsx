@@ -1,110 +1,32 @@
 // app/nhanthuong/page.jsx
 "use client";
 
-import { useRef, useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function NhanThuongPage() {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [showPlayOverlay, setShowPlayOverlay] = useState(true);
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // Bắt đầu muted để autoplay
 
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
+    // Tự động bật âm thanh sau 3 giây
+    const unmuteTimer = setTimeout(() => {
+      setIsMuted(false);
+    }, 3000);
 
-    // Fix video rotation khi có metadata
-    const fixVideoRotation = () => {
-      // Lấy kích thước thực của video
-      const videoWidth = video.videoWidth;
-      const videoHeight = video.videoHeight;
-      
-      if (videoWidth === 0 || videoHeight === 0) return;
-      
-      // Reset transform
-      video.style.transform = 'none';
-      video.style.objectFit = 'contain';
-      
-      // Nếu video bị xoay (thường là portrait video được encode sai)
-      if (videoWidth < videoHeight) {
-        // Video portrait, có thể bị xoay ngang
-        const container = video.parentElement;
-        if (container) {
-          const containerWidth = container.clientWidth;
-          const scale = containerWidth / videoHeight;
-          
-          video.style.transform = `rotate(-90deg) scale(${scale})`;
-          video.style.transformOrigin = 'center center';
-        }
-      }
-    };
-
-    // Tự động phát video
-    const autoPlayVideo = async () => {
-      try {
-        video.muted = true; // Cần muted để autoplay work
-        video.playsInline = true;
-        
-        await video.play();
-        setShowPlayOverlay(false);
-        
-        // Sau 2 giây thử bật âm thanh
-        setTimeout(() => {
-          if (video) video.muted = false;
-        }, 2000);
-      } catch (error) {
-        console.log("Autoplay blocked, showing play button");
-        setShowPlayOverlay(true);
-      }
-    };
-
-    // Event listeners
-    video.addEventListener('loadedmetadata', fixVideoRotation);
-    video.addEventListener('loadeddata', autoPlayVideo);
-    video.addEventListener('resize', fixVideoRotation);
-
-    // Cleanup
-    return () => {
-      video.removeEventListener('loadedmetadata', fixVideoRotation);
-      video.removeEventListener('loadeddata', autoPlayVideo);
-      video.removeEventListener('resize', fixVideoRotation);
-    };
+    return () => clearTimeout(unmuteTimer);
   }, []);
 
-  // Handler functions
-  const handlePlayVideo = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = false;
-      videoRef.current.play();
-      setShowPlayOverlay(false);
-    }
-  };
-
-  const handleReplay = () => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = 0;
-      videoRef.current.play();
-    }
-  };
-
-  const handleSkipToChorus = () => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = 33; // Đoạn chorus
-    }
-  };
-
-  const toggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !videoRef.current.muted;
-    }
-  };
+  // Link YouTube với các parameters
+  const youtubeUrl = `https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&rel=0&modestbranding=1&playsinline=1`;
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-900 to-black text-white p-4">
+    <div className="min-h-screen bg-linear-to-r from-gray-900 to-black text-white p-4">
       <div className="max-w-4xl mx-auto">
         
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="bg-linear-to-br from-red-900/50 to-orange-900/50 p-4 rounded-xl border border-red-700 mb-4">
+          <div className="bg-linear-to-r from-red-900/50 to-orange-900/50 p-4 rounded-xl border border-red-700 mb-4">
             <div className="flex flex-col items-center">
               <div className="flex items-center justify-center gap-3 mb-3">
                 <div className="text-6xl animate-bounce">🐔</div>
@@ -120,44 +42,38 @@ export default function NhanThuongPage() {
           </div>
         </div>
 
-        {/* Video Container */}
+        {/* YouTube Video Container */}
         <div className="mb-8">
-          <div className="relative bg-black rounded-2xl overflow-hidden shadow-2xl border-4 border-yellow-500 min-h-100 flex items-center justify-center">
+          <div className="relative bg-black rounded-2xl overflow-hidden shadow-2xl border-4 border-yellow-500">
             
-            {/* Video Element */}
-            <video
-              ref={videoRef}
-              className="w-full max-h-150 object-contain"
-              playsInline
-              controls
-              loop
-              preload="auto"
-            >
-              <source src="/videos/rickroll.mp4" type="video/mp4" />
-              Trình duyệt của bạn không hỗ trợ video.
-            </video>
-            
-            {/* Play Overlay */}
-            {showPlayOverlay && (
-              <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
-                <div className="text-center p-8 max-w-md">
-                  <div className="text-7xl mb-6">▶️</div>
-                  <h3 className="text-3xl font-bold text-yellow-300 mb-4">
-                    NHẤN ĐỂ XEM RICKROLL!
-                  </h3>
-                  <p className="text-gray-300 mb-6">
-                    Đây là video troll kinh điển nhất internet
-                  </p>
-                  <button
-                    onClick={handlePlayVideo}
-                    className="bg-linear-to-br from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600 text-white font-bold text-2xl py-4 px-8 rounded-full shadow-lg hover:scale-105 transition-all"
-                  >
-                    🎬 BẤM ĐỂ XEM
-                  </button>
-                  <p className="text-sm text-gray-400 mt-4">
-                    Trình duyệt yêu cầu bạn bấm để phát video
-                  </p>
+            {/* YouTube Embed */}
+            <div className="relative pb-[56.25%] h-0"> {/* 16:9 aspect ratio */}
+              <iframe
+                className="absolute top-0 left-0 w-full h-full"
+                src={youtubeUrl}
+                title="Rick Astley - Never Gonna Give You Up"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
+                onLoad={() => setVideoLoaded(true)}
+              />
+            </div>
+
+            {/* Loading overlay */}
+            {!videoLoaded && (
+              <div className="absolute inset-0 bg-black flex items-center justify-center">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-yellow-500 mx-auto mb-4"></div>
+                  <p className="text-yellow-300 font-bold text-xl">Đang tải Rickroll...</p>
                 </div>
+              </div>
+            )}
+
+            {/* Mute/Unmute indicator */}
+            {isMuted && videoLoaded && (
+              <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-2 rounded-lg animate-pulse">
+                🔊 Đang phát (tạm tắt tiếng để autoplay)
               </div>
             )}
           </div>
@@ -169,9 +85,9 @@ export default function NhanThuongPage() {
                 <h3 className="text-xl font-bold">🎵 Rick Astley - Never Gonna Give You Up</h3>
                 <p className="text-gray-400">Phần thưởng internet huyền thoại (1.5B+ lượt xem)</p>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-yellow-400">⭐⭐⭐⭐⭐</span>
-                <span className="text-sm text-gray-400">5.0</span>
+              <div className="flex items-center gap-4">
+                <div className="text-yellow-400">⭐⭐⭐⭐⭐</div>
+                <div className="text-sm bg-red-600 px-3 py-1 rounded-full">TRENDING</div>
               </div>
             </div>
           </div>
@@ -180,28 +96,57 @@ export default function NhanThuongPage() {
         {/* Action Buttons */}
         <div className="flex flex-wrap justify-center gap-3 mb-8">
           <button
-            onClick={handleReplay}
-            className="bg-linear-to-br from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold py-3 px-5 rounded-lg flex items-center gap-2"
+            onClick={() => {
+              setIsMuted(!isMuted);
+              // Reload iframe với trạng thái mute mới
+              const iframe = document.querySelector('iframe');
+              if (iframe) {
+                iframe.src = iframe.src.replace(/mute=\d/, `mute=${isMuted ? 0 : 1}`);
+              }
+            }}
+            className="bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-5 rounded-lg flex items-center gap-2"
           >
-            <span>🔄</span>
-            <span>Phát lại</span>
+            <span>🔊</span>
+            <span>{isMuted ? 'Bật tiếng' : 'Tắt tiếng'}</span>
           </button>
           
           <button
-            onClick={handleSkipToChorus}
-            className="bg-linear-to-br from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 px-5 rounded-lg flex items-center gap-2"
+            onClick={() => {
+              const iframe = document.querySelector('iframe');
+              if (iframe) {
+                // Reload video để phát lại từ đầu
+                iframe.src = iframe.src.replace(/&t=\d+s?/, '') + '&t=0s';
+              }
+            }}
+            className="bg-linear-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold py-3 px-5 rounded-lg flex items-center gap-2"
+          >
+            <span>🔄</span>
+            <span>Phát lại từ đầu</span>
+          </button>
+          
+          <button
+            onClick={() => {
+              const iframe = document.querySelector('iframe');
+              if (iframe) {
+                // Tua đến đoạn chorus (33 giây)
+                iframe.src = iframe.src.replace(/&t=\d+s?/, '') + '&t=33s';
+              }
+            }}
+            className="bg-linear-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 px-5 rounded-lg flex items-center gap-2"
           >
             <span>⏩</span>
             <span>Tua đến đoạn hay</span>
           </button>
           
-          <button
-            onClick={toggleMute}
-            className="bg-linear-to-br from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-5 rounded-lg flex items-center gap-2"
+          <a
+            href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-linear-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold py-3 px-5 rounded-lg flex items-center gap-2"
           >
-            <span>🔊</span>
-            <span>Bật/Tắt tiếng</span>
-          </button>
+            <span>📺</span>
+            <span>Mở trên YouTube</span>
+          </a>
           
           <Link href="/">
             <button className="bg-gray-800 hover:bg-gray-900 text-white font-bold py-3 px-5 rounded-lg flex items-center gap-2 border border-gray-700">
@@ -211,8 +156,32 @@ export default function NhanThuongPage() {
           </Link>
         </div>
 
+        {/* Video Details */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-gray-800/50 p-4 rounded-xl text-center">
+            <div className="text-2xl mb-2">🎵</div>
+            <div className="font-bold">1987</div>
+            <div className="text-sm text-gray-400">Năm phát hành</div>
+          </div>
+          <div className="bg-gray-800/50 p-4 rounded-xl text-center">
+            <div className="text-2xl mb-2">⏱️</div>
+            <div className="font-bold">3:32</div>
+            <div className="text-sm text-gray-400">Thời lượng</div>
+          </div>
+          <div className="bg-gray-800/50 p-4 rounded-xl text-center">
+            <div className="text-2xl mb-2">👁️</div>
+            <div className="font-bold">1.5B+</div>
+            <div className="text-sm text-gray-400">Lượt xem</div>
+          </div>
+          <div className="bg-gray-800/50 p-4 rounded-xl text-center">
+            <div className="text-2xl mb-2">🏆</div>
+            <div className="font-bold">#1</div>
+            <div className="text-sm text-gray-400">Meme Internet</div>
+          </div>
+        </div>
+
         {/* Troll Message */}
-        <div className="bg-linear-to-br from-red-900/30 to-orange-900/30 p-6 rounded-2xl border border-red-700/50">
+        <div className="bg-linear-to-r from-red-900/30 to-orange-900/30 p-6 rounded-2xl border border-red-700/50">
           <div className="flex items-start gap-4">
             <div className="text-3xl">🎭</div>
             <div>
@@ -230,9 +199,22 @@ export default function NhanThuongPage() {
 
         {/* Mobile Tips */}
         <div className="mt-6 p-4 bg-blue-900/20 rounded-xl">
-          <p className="text-sm text-blue-300 text-center">
-            📱 Trên điện thoại: Nhấn vào nút "BẤM ĐỂ XEM" để phát video
-          </p>
+          <div className="text-sm text-blue-300 text-center">
+            📱 <strong>Lưu ý trên mobile:</strong> Video tự động phát (tạm tắt tiếng). 
+            Nhấn vào biểu tượng 🔊 trên video để bật âm thanh.
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-8 text-center text-gray-500 text-sm pt-6 border-t border-gray-800">
+          <p>© 2024 Classic Rickroll Experience - Trang web troll vui vẻ</p>
+          <p className="mt-1">Không có phần thưởng thực tế, chỉ có niềm vui! 😄</p>
+          <div className="flex justify-center gap-6 mt-4 text-xl">
+            <span className="hover:text-yellow-400 transition-colors">🎵</span>
+            <span className="hover:text-blue-400 transition-colors">🎸</span>
+            <span className="hover:text-red-400 transition-colors">🎤</span>
+            <span className="hover:text-green-400 transition-colors">💃</span>
+          </div>
         </div>
       </div>
     </div>
